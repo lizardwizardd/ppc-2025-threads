@@ -9,26 +9,31 @@
 #include "core/task/include/task.hpp"
 #include "seq/milovankin_m_histogram_stretching/include/ops_seq.hpp"
 
-static milovankin_m_histogram_stretching_seq::TestTaskSequential createTask(std::vector<uint8_t>& dataIn,
-                                                                            std::vector<uint8_t>& dataOut) {
-  auto taskData = std::make_shared<ppc::core::TaskData>();
+namespace {
 
-  taskData->inputs.emplace_back(dataIn.data());
-  taskData->inputs_count.emplace_back(static_cast<uint32_t>(dataIn.size()));
+milovankin_m_histogram_stretching_seq::TestTaskSequential CreateTask(std::vector<uint8_t>& data_in,
+                                                                     std::vector<uint8_t>& data_out) {
+  auto task_data = std::make_shared<ppc::core::TaskData>();
 
-  taskData->outputs.emplace_back(dataOut.data());
-  taskData->outputs_count.emplace_back(static_cast<uint32_t>(dataOut.size()));
+  task_data->inputs.emplace_back(data_in.data());
+  task_data->inputs_count.emplace_back(static_cast<uint32_t>(data_in.size()));
 
-  return milovankin_m_histogram_stretching_seq::TestTaskSequential(taskData);
+  task_data->outputs.emplace_back(data_out.data());
+  task_data->outputs_count.emplace_back(static_cast<uint32_t>(data_out.size()));
+
+  return milovankin_m_histogram_stretching_seq::TestTaskSequential(task_data);
 }
 
-TEST(milovankin_m_histogram_stretching_seq, test_pipeline_run) {
-  std::vector<uint8_t> dataIn(123456789, 123);
-  std::vector<uint8_t> dataOut(dataIn.size());
-  dataIn.front() = 5;
-  dataIn.back() = 155;
+}  // namespace
 
-  auto task = std::make_shared<milovankin_m_histogram_stretching_seq::TestTaskSequential>(createTask(dataIn, dataOut));
+TEST(milovankin_m_histogram_stretching_seq, test_pipeline_run) {
+  std::vector<uint8_t> data_in(123456789, 123);
+  std::vector<uint8_t> data_out(data_in.size());
+  data_in.front() = 5;
+  data_in.back() = 155;
+
+  auto task =
+      std::make_shared<milovankin_m_histogram_stretching_seq::TestTaskSequential>(CreateTask(data_in, data_out));
 
   // Create Perf attributes
   auto perf_attr = std::make_shared<ppc::core::PerfAttr>();
@@ -50,12 +55,13 @@ TEST(milovankin_m_histogram_stretching_seq, test_pipeline_run) {
 }
 
 TEST(milovankin_m_histogram_stretching_seq, test_task_run) {
-  std::vector<uint8_t> dataIn(123456789, 123);
-  std::vector<uint8_t> dataOut(dataIn.size());
-  dataIn.front() = 5;
-  dataIn.back() = 155;
+  std::vector<uint8_t> data_in(123456789, 123);
+  std::vector<uint8_t> data_out(data_in.size());
+  data_in.front() = 5;
+  data_in.back() = 155;
 
-  auto task = std::make_shared < milovankin_m_histogram_stretching_seq::TestTaskSequential>(createTask(dataIn, dataOut));
+  auto task =
+      std::make_shared<milovankin_m_histogram_stretching_seq::TestTaskSequential>(CreateTask(data_in, data_out));
 
   // Create Perf attributes
   auto perf_attr = std::make_shared<ppc::core::PerfAttr>();

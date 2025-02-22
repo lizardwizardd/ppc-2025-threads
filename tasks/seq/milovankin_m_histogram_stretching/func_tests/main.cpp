@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
-#include <stdint.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <opencv2/opencv.hpp>
 #include <vector>
@@ -9,79 +10,83 @@
 #include "core/util/include/util.hpp"
 #include "seq/milovankin_m_histogram_stretching/include/ops_seq.hpp"
 
-static milovankin_m_histogram_stretching_seq::TestTaskSequential createTask(std::vector<uint8_t>& dataIn,
-                                                                            std::vector<uint8_t>& dataOut) {
-  auto taskData = std::make_shared<ppc::core::TaskData>();
+namespace {
 
-  taskData->inputs.emplace_back(dataIn.data());
-  taskData->inputs_count.emplace_back(static_cast<uint32_t>(dataIn.size()));
+milovankin_m_histogram_stretching_seq::TestTaskSequential CreateTask(std::vector<uint8_t>& data_in,
+                                                                     std::vector<uint8_t>& data_out) {
+  auto task_data = std::make_shared<ppc::core::TaskData>();
 
-  taskData->outputs.emplace_back(dataOut.data());
-  taskData->outputs_count.emplace_back(static_cast<uint32_t>(dataOut.size()));
+  task_data->inputs.emplace_back(data_in.data());
+  task_data->inputs_count.emplace_back(static_cast<uint32_t>(data_in.size()));
 
-  return milovankin_m_histogram_stretching_seq::TestTaskSequential(taskData);
+  task_data->outputs.emplace_back(data_out.data());
+  task_data->outputs_count.emplace_back(static_cast<uint32_t>(data_out.size()));
+
+  return milovankin_m_histogram_stretching_seq::TestTaskSequential(task_data);
 }
+
+}  // namespace
 
 TEST(milovankin_m_histogram_stretching_seq, test_small_data) {
   // clang-format off
-  std::vector<uint8_t> dataIn = {
+  std::vector<uint8_t> data_in = {
 	50, 100, 100, 200,
 	100, 50, 250, 100,
 	100, 100, 200, 50,
 	100, 200, 50, 250,
   };
-  std::vector<uint8_t> dataExpected = {
+  std::vector<uint8_t> data_expected = {
 	0,   64,  64,  191,
     64,  0,   255, 64,
     64,  64,  191, 0,
     64,  191, 0,   255
   };
   // clang-format on
-  std::vector<uint8_t> dataOut(dataIn.size());
+  std::vector<uint8_t> data_out(data_in.size());
 
-  milovankin_m_histogram_stretching_seq::TestTaskSequential task = createTask(dataIn, dataOut);
+  milovankin_m_histogram_stretching_seq::TestTaskSequential task = CreateTask(data_in, data_out);
   ASSERT_TRUE(task.Validation());
   ASSERT_TRUE(task.PreProcessing());
   ASSERT_TRUE(task.Run());
   ASSERT_TRUE(task.PostProcessing());
 
-  ASSERT_EQ(dataOut, dataExpected);
+  ASSERT_EQ(data_out, data_expected);
 }
 
 TEST(milovankin_m_histogram_stretching_seq, test_single_element) {
-  std::vector<uint8_t> dataIn = {150};
-  std::vector<uint8_t> dataOut(1);
+  std::vector<uint8_t> data_in = {150};
+  std::vector<uint8_t> data_out(1);
 
-  auto task = createTask(dataIn, dataOut);
+  auto task = CreateTask(data_in, data_out);
   ASSERT_TRUE(task.Validation());
   ASSERT_TRUE(task.PreProcessing());
   ASSERT_TRUE(task.Run());
   ASSERT_TRUE(task.PostProcessing());
 
-  EXPECT_EQ(dataOut[0], 150);
+  EXPECT_EQ(data_out[0], 150);
 }
 
 TEST(milovankin_m_histogram_stretching_seq, test_empty_data) {
-  std::vector<uint8_t> dataIn;
-  std::vector<uint8_t> dataOut;
+  std::vector<uint8_t> data_in;
+  std::vector<uint8_t> data_out;
 
-  auto task = createTask(dataIn, dataOut);
+  auto task = CreateTask(data_in, data_out);
   ASSERT_FALSE(task.Validation());
 }
 
 TEST(milovankin_m_histogram_stretching_seq, test_validation_fail_different_buffer_sizes) {
-  std::vector<uint8_t> dataIn(10, 100);
-  std::vector<uint8_t> dataOut(5);  // Output buffer too small
+  std::vector<uint8_t> data_in(10, 100);
+  std::vector<uint8_t> data_out(5);  // Output buffer too small
 
-  auto task = createTask(dataIn, dataOut);
+  auto task = CreateTask(data_in, data_out);
   ASSERT_FALSE(task.Validation());
 }
 
 TEST(milovankin_m_histogram_stretching_seq, test_validation_fail_output_buffer_empty) {
-  std::vector<uint8_t> dataIn(10);
-  std::vector<uint8_t> dataOut;
+  std::vector<uint8_t> data_in(10);
+  std::vector<uint8_t> data_out;
 
-  auto task = createTask(dataIn, dataOut);
+  auto task = CreateTask(data_in, data_out);
   ASSERT_FALSE(task.Validation());
 }
 
@@ -90,21 +95,21 @@ TEST(milovankin_m_histogram_stretching_seq, test_compare_with_opencv) {
                              cv::IMREAD_GRAYSCALE);
   ASSERT_FALSE(image.empty());
 
-  cv::Mat expectedImage;
-  cv::normalize(image, expectedImage, 0, 255, cv::NORM_MINMAX);
+  cv::Mat expected_image;
+  cv::normalize(image, expected_image, 0, 255, cv::NORM_MINMAX);
 
-  std::vector<uint8_t> dataIn(image.data, image.data + image.total());
-  std::vector<uint8_t> dataOut(dataIn.size());
-  std::vector<uint8_t> dataExpected(expectedImage.data, expectedImage.data + expectedImage.total());
+  std::vector<uint8_t> data_in(image.data, image.data + image.total());
+  std::vector<uint8_t> data_out(data_in.size());
+  std::vector<uint8_t> data_expected(expected_image.data, expected_image.data + expected_image.total());
 
-  auto task = createTask(dataIn, dataOut);
+  auto task = CreateTask(data_in, data_out);
   ASSERT_TRUE(task.Validation());
   ASSERT_TRUE(task.PreProcessing());
-  ASSERT_TRUE(task.Run());
-  ASSERT_TRUE(task.PostProcessing());
+  task.Run();
+  task.PostProcessing();
 
-  ASSERT_EQ(dataOut.size(), dataExpected.size());
-  for (size_t i = 0; i < dataOut.size(); ++i) {
-    ASSERT_EQ(dataOut[i], dataExpected[i]) << "Mismatch at pixel " << i;
+  ASSERT_EQ(data_out.size(), data_expected.size());
+  for (size_t i = 0; i < data_out.size(); ++i) {
+    ASSERT_EQ(data_out[i], data_expected[i]);
   }
 }

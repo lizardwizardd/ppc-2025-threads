@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vector>
+#include <cstdint>
 #include <utility>
+#include <vector>
 
 #include "core/task/include/task.hpp"
 
@@ -16,7 +17,7 @@ class TestTaskSequential : public ppc::core::Task {
   bool PostProcessingImpl() override;
 
  private:
-  std::vector<uint8_t> img;
+  std::vector<uint8_t> img_;
 };
 
 }  // namespace milovankin_m_histogram_stretching_seq
