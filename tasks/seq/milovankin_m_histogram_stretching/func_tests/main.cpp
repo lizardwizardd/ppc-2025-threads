@@ -1,13 +1,10 @@
 #include <gtest/gtest.h>
 
-#include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <opencv2/opencv.hpp>
 #include <vector>
 
 #include "core/task/include/task.hpp"
-#include "core/util/include/util.hpp"
 #include "seq/milovankin_m_histogram_stretching/include/ops_seq.hpp"
 
 namespace {
@@ -90,26 +87,38 @@ TEST(milovankin_m_histogram_stretching_seq, test_validation_fail_output_buffer_e
   ASSERT_FALSE(task.Validation());
 }
 
-TEST(milovankin_m_histogram_stretching_seq, test_compare_with_opencv) {
-  cv::Mat image = cv::imread(ppc::util::GetAbsolutePath("seq/milovankin_m_histogram_stretching/data/img_test.jpg"),
-                             cv::IMREAD_GRAYSCALE);
-  ASSERT_FALSE(image.empty());
-
-  cv::Mat expected_image;
-  cv::normalize(image, expected_image, 0, 255, cv::NORM_MINMAX);
-
-  std::vector<uint8_t> data_in(image.data, image.data + image.total());
+TEST(milovankin_m_histogram_stretching_seq, test_filled_image) {
+  // clang-format off
+  std::vector<uint8_t> data_in(100, 123);
+  std::vector<uint8_t> data_expected(100, 123);
+  // clang-format on
   std::vector<uint8_t> data_out(data_in.size());
-  std::vector<uint8_t> data_expected(expected_image.data, expected_image.data + expected_image.total());
 
-  auto task = CreateTask(data_in, data_out);
+  milovankin_m_histogram_stretching_seq::TestTaskSequential task = CreateTask(data_in, data_out);
   ASSERT_TRUE(task.Validation());
   ASSERT_TRUE(task.PreProcessing());
   task.Run();
   task.PostProcessing();
 
-  ASSERT_EQ(data_out.size(), data_expected.size());
-  for (size_t i = 0; i < data_out.size(); ++i) {
-    ASSERT_EQ(data_out[i], data_expected[i]);
-  }
+  ASSERT_EQ(data_expected, data_out);
+}
+
+TEST(milovankin_m_histogram_stretching_seq, test_big_image) {
+  std::vector<uint8_t> data_in(1024, 100);
+  std::vector<uint8_t> data_out(data_in.size());
+
+  data_in[0] = 50;
+  data_in[1] = 125;
+
+  std::vector<uint8_t> data_expected(data_in.size(), 170);
+  data_expected[0] = 0;
+  data_expected[1] = 255;
+
+  milovankin_m_histogram_stretching_seq::TestTaskSequential task = CreateTask(data_in, data_out);
+  ASSERT_TRUE(task.Validation());
+  ASSERT_TRUE(task.PreProcessing());
+  task.Run();
+  task.PostProcessing();
+
+  ASSERT_EQ(data_expected, data_out);
 }
