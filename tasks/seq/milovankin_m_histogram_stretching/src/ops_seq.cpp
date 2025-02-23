@@ -23,16 +23,14 @@ bool TestTaskSequential::PreProcessingImpl() {
 }
 
 bool TestTaskSequential::RunImpl() {
-  const auto [min_it, max_it] = std::ranges::minmax_element(img_.begin(), img_.end());
-  const uint8_t min_val = *min_it;
-  const uint8_t max_val = *max_it;
+  auto minmax = std::ranges::minmax(img_);
+  uint8_t min_val = minmax.min;
+  uint8_t max_val = minmax.max;
 
   if (min_val != max_val) {
     const int delta = max_val - min_val;
-
-    for (auto& pixel : img_) {
-      pixel = ((pixel - min_val) * 255 + delta / 2) / delta;
-    }
+    std::ranges::for_each(
+        img_, [&min_val, &delta](uint8_t& pixel) { pixel = ((pixel - min_val) * 255 + delta / 2) / delta; });
   }
 
   return true;

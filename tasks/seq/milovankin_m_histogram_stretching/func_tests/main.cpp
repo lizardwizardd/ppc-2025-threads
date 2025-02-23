@@ -73,7 +73,7 @@ TEST(milovankin_m_histogram_stretching_seq, test_empty_data) {
 
 TEST(milovankin_m_histogram_stretching_seq, test_validation_fail_different_buffer_sizes) {
   std::vector<uint8_t> data_in(10, 100);
-  std::vector<uint8_t> data_out(5);  // Output buffer too small
+  std::vector<uint8_t> data_out(5);
 
   auto task = CreateTask(data_in, data_out);
   ASSERT_FALSE(task.Validation());
