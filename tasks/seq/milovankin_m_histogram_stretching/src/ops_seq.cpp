@@ -1,9 +1,7 @@
 #include "seq/milovankin_m_histogram_stretching/include/ops_seq.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <cstdint>
-#include <cstring>
 #include <vector>
 
 namespace milovankin_m_histogram_stretching_seq {
@@ -41,7 +39,7 @@ bool TestTaskSequential::PostProcessingImpl() {
   const uint32_t output_size = task_data->outputs_count[0];
   const uint32_t copy_size = std::min(output_size, static_cast<uint32_t>(img_.size()));
 
-  std::memcpy(output_data, img_.data(), copy_size * sizeof(uint8_t));
+  std::copy_n(img_.cbegin(), copy_size, output_data);
   return true;
 }
 
