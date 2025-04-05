@@ -51,6 +51,13 @@ TEST(milovankin_m_histogram_stretching_omp, test_pipeline_run) {
   auto perf_analyzer = std::make_shared<ppc::core::Perf>(task);
   perf_analyzer->PipelineRun(perf_attr, perf_results);
   ppc::core::Perf::PrintPerfStatistic(perf_results);
+
+  // Verify output correctness
+  std::vector<uint8_t> data_expected(data_in.size(), 201);  // ((123 - 5) * 255 + 150 / 2) / 150 = 201
+  data_expected.front() = 0;
+  data_expected.back() = 255;
+
+  EXPECT_EQ(data_out, data_expected);
 }
 
 TEST(milovankin_m_histogram_stretching_omp, test_task_run) {
@@ -78,4 +85,10 @@ TEST(milovankin_m_histogram_stretching_omp, test_task_run) {
   auto perf_analyzer = std::make_shared<ppc::core::Perf>(task);
   perf_analyzer->TaskRun(perf_attr, perf_results);
   ppc::core::Perf::PrintPerfStatistic(perf_results);
+
+  // Verify output correctness
+  std::vector<uint8_t> data_expected(data_in.size(), 201);  // ((123 - 5) * 255 + 150 / 2) / 150 = 201
+  data_expected.front() = 0;
+  data_expected.back() = 255;
+  EXPECT_EQ(data_out, data_expected);
 }
