@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <boost/mpi.hpp>
 #include <boost/mpi/collectives.hpp>
+#include <boost/serialization/access.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -35,6 +36,11 @@ struct MinMaxPair {
   MinMaxPair() : min_val(std::numeric_limits<uint8_t>::max()), max_val(0) {}
 
   MinMaxPair(uint8_t min, uint8_t max) : min_val(min), max_val(max) {}
+
+  template <class Archive>
+  void serialize(Archive& ar, const unsigned int) {
+    ar & min_val & max_val;
+  }
 };
 
 bool TestTaskAll::RunImpl() {
