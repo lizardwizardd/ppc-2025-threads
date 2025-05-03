@@ -1,6 +1,7 @@
 #include "../include/ops_stl.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <future>
 #include <limits>
@@ -76,11 +77,11 @@ bool TestTaskSTL::RunImpl() {
       const std::size_t start = chunk * chunk_size;
       const std::size_t end = std::min(start + chunk_size, img_.size());
 
-      threads.push_back(std::thread([this, start, end, min_val, delta]() {
+      threads.emplace_back([this, start, end, min_val, delta]() {
         for (std::size_t i = start; i < end; ++i) {
           img_[i] = static_cast<uint8_t>(((img_[i] - min_val) * 255 + delta / 2) / delta);
         }
-      }));
+      });
     }
 
     for (auto& thread : threads) {
