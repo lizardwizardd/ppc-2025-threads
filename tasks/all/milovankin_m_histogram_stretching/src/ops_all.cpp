@@ -1,9 +1,9 @@
 #include "../include/ops_all.hpp"
 
 #include <algorithm>
-#include <boost/mpi.hpp>
 #include <boost/mpi/collectives.hpp>
-#include <boost/serialization/access.hpp>
+#include <boost/serialization/nvp.hpp>
+#include <boost/serialization/serialization.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -39,7 +39,8 @@ struct MinMaxPair {
 
   template <class Archive>
   void serialize(Archive& ar, const unsigned int) {
-    ar & min_val & max_val;
+    ar & min_val;
+    ar & max_val;
   }
 };
 
@@ -81,7 +82,7 @@ bool TestTaskAll::RunImpl() {
   std::size_t remainder = img_size % size;
 
   std::size_t start_idx = rank * chunk_size;
-  std::size_t end_idx;
+  std::size_t end_idx = 0;
 
   if (rank == size - 1) {
     // Last process gets any remainder
@@ -153,7 +154,7 @@ bool TestTaskAll::RunImpl() {
       // Receive chunks from other processes
       for (int src_rank = 1; src_rank < size; ++src_rank) {
         std::size_t src_start = src_rank * chunk_size;
-        std::size_t src_end;
+        std::size_t src_end = 0;
 
         if (src_rank == size - 1) {
           // Last process has remainder
@@ -168,7 +169,7 @@ bool TestTaskAll::RunImpl() {
           src_size = std::min(src_size, img_size - src_start);
 
           std::vector<uint8_t> temp_buffer(src_size);
-          world_.recv(src_rank, 0, temp_buffer.data(), src_size);
+          world_.recv(src_rank, 0, temp_buffer.data(), static_cast<int>(src_size));
           std::copy(temp_buffer.begin(), temp_buffer.end(), img_.begin() + src_start);
         }
       }
@@ -177,7 +178,7 @@ bool TestTaskAll::RunImpl() {
       std::size_t my_chunk_size = end_idx - start_idx;
       if (my_chunk_size > 0 && start_idx < img_size) {
         my_chunk_size = std::min(my_chunk_size, img_size - start_idx);
-        world_.send(0, 0, img_.data() + start_idx, my_chunk_size);
+        world_.send(0, 0, img_.data() + start_idx, static_cast<int>(my_chunk_size));
       }
     }
   }

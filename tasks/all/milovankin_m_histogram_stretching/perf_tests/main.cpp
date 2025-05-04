@@ -45,7 +45,7 @@ TEST(milovankin_m_histogram_stretching_all, test_pipeline_run) {
   }
 
   // Broadcast data to all processes
-  boost::mpi::broadcast(world, data_in.data(), data_in.size(), 0);
+  boost::mpi::broadcast(world, data_in.data(), static_cast<int>(data_in.size()), 0);
 
   auto task =
       std::make_shared<milovankin_m_histogram_stretching_all::TestTaskAll>(CreateParallelTask(data_in, data_out));
@@ -98,7 +98,7 @@ TEST(milovankin_m_histogram_stretching_all, test_task_run) {
   }
 
   // Broadcast data to all processes
-  boost::mpi::broadcast(world, data_in.data(), data_in.size(), 0);
+  boost::mpi::broadcast(world, data_in.data(), static_cast<int>(data_in.size()), 0);
 
   auto task =
       std::make_shared<milovankin_m_histogram_stretching_all::TestTaskAll>(CreateParallelTask(data_in, data_out));
