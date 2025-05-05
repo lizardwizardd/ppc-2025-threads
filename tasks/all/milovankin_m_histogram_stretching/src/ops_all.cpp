@@ -14,19 +14,12 @@
 
 namespace milovankin_m_histogram_stretching_all {
 
-bool TestTaskAll::ValidationImpl() {
-  return !task_data->inputs.empty() && !task_data->inputs_count.empty() && task_data->inputs_count[0] != 0 &&
-         !task_data->outputs.empty() && !task_data->outputs_count.empty() &&
-         task_data->inputs_count[0] == task_data->outputs_count[0];
-}
-
-bool TestTaskAll::PreProcessingImpl() {
-  const uint8_t* input_data = task_data->inputs.front();
-  const uint32_t input_size = task_data->inputs_count.front();
-
-  img_.assign(input_data, input_data + input_size);
-  return true;
-}
+struct MinMaxPair;
+MinMaxPair CalculateLocalMinMax(const std::vector<uint8_t>& img, std::size_t start_idx, std::size_t end_idx);
+void ApplyStretchingLocal(std::vector<uint8_t>& img, std::size_t start_idx, std::size_t end_idx, uint8_t global_min,
+                          uint8_t global_max);
+void GatherResults(boost::mpi::communicator& world, std::vector<uint8_t>& img, std::size_t img_size,
+                   std::size_t chunk_size, std::size_t remainder);
 
 struct MinMaxPair {
   uint8_t min_val;
@@ -77,7 +70,6 @@ void ApplyStretchingLocal(std::vector<uint8_t>& img, std::size_t start_idx, std:
                     });
 }
 
-// Gather results using MPI
 void GatherResults(boost::mpi::communicator& world, std::vector<uint8_t>& img, std::size_t img_size,
                    std::size_t chunk_size, std::size_t remainder) {
   int rank = world.rank();
@@ -104,6 +96,20 @@ void GatherResults(boost::mpi::communicator& world, std::vector<uint8_t>& img, s
       world.send(0, 0, img.data() + start_idx, static_cast<int>(my_chunk_size));
     }
   }
+}
+
+bool TestTaskAll::ValidationImpl() {
+  return !task_data->inputs.empty() && !task_data->inputs_count.empty() && task_data->inputs_count[0] != 0 &&
+         !task_data->outputs.empty() && !task_data->outputs_count.empty() &&
+         task_data->inputs_count[0] == task_data->outputs_count[0];
+}
+
+bool TestTaskAll::PreProcessingImpl() {
+  const uint8_t* input_data = task_data->inputs.front();
+  const uint32_t input_size = task_data->inputs_count.front();
+
+  img_.assign(input_data, input_data + input_size);
+  return true;
 }
 
 bool TestTaskAll::RunImpl() {
