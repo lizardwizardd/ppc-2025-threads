@@ -1,8 +1,10 @@
 #include "../include/ops_all.hpp"
 
 #include <algorithm>
-#include <boost/mpi.hpp>
 #include <boost/mpi/collectives.hpp>
+#include <boost/mpi/collectives/all_reduce.hpp>
+#include <boost/mpi/collectives/broadcast.hpp>
+#include <boost/mpi/communicator.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -15,11 +17,13 @@
 namespace milovankin_m_histogram_stretching_all {
 
 struct MinMaxPair;
+namespace {
 MinMaxPair CalculateLocalMinMax(const std::vector<uint8_t>& img, std::size_t start_idx, std::size_t end_idx);
 void ApplyStretchingLocal(std::vector<uint8_t>& img, std::size_t start_idx, std::size_t end_idx, uint8_t global_min,
                           uint8_t global_max);
 void GatherResults(boost::mpi::communicator& world, std::vector<uint8_t>& img, std::size_t img_size,
                    std::size_t chunk_size, std::size_t remainder);
+}  // namespace
 
 struct MinMaxPair {
   uint8_t min_val;
@@ -30,12 +34,13 @@ struct MinMaxPair {
   MinMaxPair(uint8_t min, uint8_t max) : min_val(min), max_val(max) {}
 
   template <class Archive>
-  void serialize(Archive& ar, const unsigned int) {
+  void serialize(Archive& ar, const unsigned int) {  // NOLINT
     ar & min_val;
     ar & max_val;
   }
 };
 
+namespace {
 MinMaxPair CalculateLocalMinMax(const std::vector<uint8_t>& img, std::size_t start_idx, std::size_t end_idx) {
   const std::size_t grain_size = std::max(std::size_t(16), (end_idx - start_idx) / 16);
   return tbb::parallel_reduce(
@@ -57,7 +62,9 @@ MinMaxPair CalculateLocalMinMax(const std::vector<uint8_t>& img, std::size_t sta
 
 void ApplyStretchingLocal(std::vector<uint8_t>& img, std::size_t start_idx, std::size_t end_idx, uint8_t global_min,
                           uint8_t global_max) {
-  if (global_min == global_max) return;  // No stretching needed
+  if (global_min == global_max) {
+    return;  // No stretching needed
+  }
 
   const int delta = global_max - global_min;
   const std::size_t grain_size = std::max(std::size_t(16), (end_idx - start_idx) / 16);
@@ -75,7 +82,9 @@ void GatherResults(boost::mpi::communicator& world, std::vector<uint8_t>& img, s
   int rank = world.rank();
   int size = world.size();
 
-  if (size <= 1) return;
+  if (size <= 1) {
+    return;
+  }
 
   if (rank == 0) {
     for (int src_rank = 1; src_rank < size; ++src_rank) {
@@ -97,6 +106,7 @@ void GatherResults(boost::mpi::communicator& world, std::vector<uint8_t>& img, s
     }
   }
 }
+}  // namespace
 
 bool TestTaskAll::ValidationImpl() {
   return !task_data->inputs.empty() && !task_data->inputs_count.empty() && task_data->inputs_count[0] != 0 &&
@@ -129,13 +139,13 @@ bool TestTaskAll::RunImpl() {
   std::size_t img_size = img_.size();
   boost::mpi::broadcast(world_, img_size, 0);  // Ensure all processes know the size
 
-  // Calculate chunk sizes
+  // Chunk sizes
   std::size_t chunk_size = img_size / size;
   std::size_t remainder = img_size % size;
   std::size_t start_idx = rank * chunk_size;
   std::size_t end_idx = (rank == size - 1) ? (start_idx + chunk_size + remainder) : (start_idx + chunk_size);
 
-  // Handle cases where a process might get no data
+  // Process might get no data
   if (start_idx >= img_size || start_idx >= end_idx) {
     MinMaxPair local_minmax(std::numeric_limits<uint8_t>::max(), 0);  // Participate with neutral values
     MinMaxPair global_minmax;

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <boost/mpi/collectives.hpp>
+#include <boost/mpi/collectives/broadcast.hpp>
 #include <boost/mpi/communicator.hpp>
 #include <chrono>
 #include <cstdint>
@@ -45,9 +46,7 @@ TEST(milovankin_m_histogram_stretching_all, test_pipeline_run) {
     data_out.resize(123456789);
   }
 
-  // clang-format off
-  boost::mpi::broadcast(world, data_in.data(), static_cast<int>(data_in.size()), 0); // keeps saying no header included
-  // clang-format on
+  boost::mpi::broadcast(world, data_in.data(), static_cast<int>(data_in.size()), 0);
 
   auto task =
       std::make_shared<milovankin_m_histogram_stretching_all::TestTaskAll>(CreateParallelTask(data_in, data_out));
