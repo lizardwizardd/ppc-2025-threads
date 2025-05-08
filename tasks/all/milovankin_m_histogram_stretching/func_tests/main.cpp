@@ -1,11 +1,14 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <boost/mpi/communicator.hpp>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <vector>
 
 #include "../include/ops_all.hpp"
+#include "boost/mpi/collectives/broadcast.hpp"
 #include "core/task/include/task.hpp"
 
 namespace {
@@ -137,5 +140,52 @@ TEST(milovankin_m_histogram_stretching_all, test_big_image) {
 
   if (world.rank() == 0) {
     ASSERT_EQ(data_expected, data_out);
+  }
+}
+
+TEST(milovankin_m_histogram_stretching_all, test_mpi_gather_logic) {
+  boost::mpi::communicator world;
+  int rank = world.rank();
+  int size = world.size();
+
+  if (size <= 1) {
+    // GTEST_SKIP() << "Skipping MPI gather test on single process.";
+  }
+
+  const std::size_t data_size = 20;
+  std::vector<uint8_t> data_in(data_size);
+  std::vector<uint8_t> data_out(data_size);
+  std::vector<uint8_t> data_expected(data_size);
+
+  if (rank == 0) {
+    std::size_t chunk_size = data_size / size;
+    std::size_t remainder = data_size % size;
+
+    for (int r = 0; r < size; ++r) {
+      std::size_t r_start_idx = r * chunk_size;
+      std::size_t r_chunk_size = (r == size - 1) ? (chunk_size + remainder) : chunk_size;
+      std::size_t r_end_idx = r_start_idx + r_chunk_size;
+
+      // Ensure end index does not exceed data size
+      r_end_idx = std::min(r_end_idx, data_size);
+
+      // Fill the chunk corresponding to rank 'r' with value 'r'
+      for (std::size_t i = r_start_idx; i < r_end_idx; ++i) {
+        data_in[i] = static_cast<uint8_t>(r);        // Assign rank number as value
+        data_expected[i] = static_cast<uint8_t>(r);  // Expected output is same for this simple case
+      }
+    }
+  }
+
+  boost::mpi::broadcast(world, data_in.data(), static_cast<int>(data_in.size()), 0);
+
+  auto task = CreateParallelTask(data_in, data_out);
+  ASSERT_TRUE(task.Validation());
+  ASSERT_TRUE(task.PreProcessing());
+  task.Run();  // Trigger the GatherResults logic
+  task.PostProcessing();
+
+  if (rank == 0) {
+    ASSERT_EQ(data_out, data_expected);
   }
 }
