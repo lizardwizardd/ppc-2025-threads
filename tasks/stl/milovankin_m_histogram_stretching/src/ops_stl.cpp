@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <limits>
 #include <thread>
 #include <vector>
@@ -53,7 +54,7 @@ bool TestTaskSTL::RunImpl() {
     return true;
   }
 
-  const float scale = 255.0F / static_cast<float>(max_val - min_val);
+  const int delta = static_cast<int>(max_val) - static_cast<int>(min_val);
 
   const std::size_t img_size = img_.size();
   const std::size_t base_chunk = img_size / num_threads;
@@ -68,10 +69,13 @@ bool TestTaskSTL::RunImpl() {
     const std::size_t start = offset;
     const std::size_t end = start + chunk;
 
-    threads.emplace_back([this, start, end, min_val, scale]() {
-      std::transform(img_.begin() + start, img_.begin() + end, img_.begin() + start,
-                     [min_val, scale](uint8_t px) -> uint8_t {
-                       return static_cast<uint8_t>(std::clamp(static_cast<int>((px - min_val) * scale), 0, 255));
+    threads.emplace_back([this, start, end, min_val, delta]() {
+      std::transform(std::next(img_.begin(), static_cast<std::ptrdiff_t>(start)),
+                     std::next(img_.begin(), static_cast<std::ptrdiff_t>(end)),
+                     std::next(img_.begin(), static_cast<std::ptrdiff_t>(start)),
+                     [min_val, delta](uint8_t px) -> uint8_t {
+                       int v = ((static_cast<int>(px) - static_cast<int>(min_val)) * 255 + delta / 2) / delta;
+                       return static_cast<uint8_t>(v);
                      });
     });
 
