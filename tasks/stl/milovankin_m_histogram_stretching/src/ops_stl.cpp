@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <future>
 #include <limits>
 #include <thread>
 #include <vector>
@@ -40,13 +39,13 @@ bool TestTaskSTL::RunImpl() {
     return true;
   }
 
-  std::size_t num_threads = static_cast<std::size_t>(ppc::util::GetPPCNumThreads());
+  auto num_threads = static_cast<std::size_t>(ppc::util::GetPPCNumThreads());
   if (num_threads == 0) {
     num_threads = 1;
   }
   num_threads = std::min<std::size_t>(num_threads, img_.size());
 
-  auto [min_it, max_it] = std::minmax_element(img_.begin(), img_.end());
+  auto [min_it, max_it] = std::ranges::minmax_element(img_.begin(), img_.end());
   const uint8_t min_val = *min_it;
   const uint8_t max_val = *max_it;
 
@@ -54,7 +53,7 @@ bool TestTaskSTL::RunImpl() {
     return true;
   }
 
-  const float scale = 255.0f / static_cast<float>(max_val - min_val);
+  const float scale = 255.0F / static_cast<float>(max_val - min_val);
 
   const std::size_t img_size = img_.size();
   const std::size_t base_chunk = img_size / num_threads;
